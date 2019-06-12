@@ -1,2 +1,0 @@
-# cdb
-C database implementation
