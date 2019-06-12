@@ -8,10 +8,10 @@
 #include <stdint.h>
 
 struct _array;
-struct __bucket;
 struct _dict;
 enum _value_type {
     INT,
+    UINT,
     DOUBLE,
     BOOL,
     STRING,
@@ -28,7 +28,6 @@ struct _item;
 struct _dict_iterator;
 
 typedef struct _array array;
-typedef struct __bucket _bucket;
 typedef struct _dict dict;
 typedef enum _value_type value_type;
 typedef union _value value;
@@ -38,26 +37,22 @@ typedef struct __item_node _item_node;
 typedef struct _item item;
 typedef struct _dict_iterator dict_iterator;
 
-
 struct _array {
     value_type type;
     uint64_t length;
     void **values;
 };
 
-struct __bucket {
-    uint64_t length;
-    _item_node *first_node;
-};
 
 struct _dict {
-    _bucket *buckets;
+    _item_node ** buckets;
     uint64_t n_buckets;
     uint64_t n_items;
 };
 
 union _value {
-    uint64_t int_value;
+    int64_t int_value;
+    uint64_t uint_value;
     double double_value;
     char bool_value;
     char *string_value;
@@ -71,7 +66,7 @@ struct _item_value {
 };
 
 struct __key {
-    uint64_t hash[2];
+    uint64_t hash;
     char *value;
 };
 

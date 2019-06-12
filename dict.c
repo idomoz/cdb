@@ -10,14 +10,10 @@
 
 dict *new_dict(uint64_t initial_size) {
     dict *new_dict = (dict *) malloc(sizeof(dict));
-    *new_dict = (dict) {(_bucket *) malloc(sizeof(_bucket) * initial_size), initial_size, 0};
+    *new_dict = (dict) {(_item_node **) malloc(sizeof(_item_node *) * initial_size), initial_size, 0};
     for (int i = 0; i < initial_size; i++)
-        new_dict->buckets[i] = _new_bucket();
+        new_dict->buckets[i] = NULL;
     return new_dict;
-}
-
-static uint64_t _calc_location(_key *key, uint64_t n_buckets) {
-    return (key->hash[0] + key->hash[1]) % n_buckets;
 }
 
 static void _resize(dict *dict) {
@@ -27,14 +23,14 @@ static void _resize(dict *dict) {
     if (dict->n_buckets > new_n_buckets)
         new_n_buckets = UINT64_MAX;
 
-    _bucket *new_buckets = (_bucket *) malloc(sizeof(_bucket) * new_n_buckets);
+    _item_node **new_buckets = (_item_node **) malloc(sizeof(_item_node *) * new_n_buckets);
     for (int i = 0; i < new_n_buckets; i++)
-        new_buckets[i] = _new_bucket();
+        new_buckets[i] = NULL;
 
     for (int i_bucket = 0; i_bucket < dict->n_buckets; i_bucket++) {
-        for (_item_node *node = dict->buckets[i_bucket].first_node, *next_node = NULL; node != NULL; node = next_node) {
+        for (_item_node *node = dict->buckets[i_bucket], *next_node = NULL; node != NULL; node = next_node) {
             next_node = node->next;
-            _append_node(new_buckets + _calc_location(&node->key, new_n_buckets), node);
+            _append_node(new_buckets + (node->key.hash % new_n_buckets), node);
         }
     }
     free(dict->buckets);
@@ -43,31 +39,31 @@ static void _resize(dict *dict) {
 }
 
 static _key _create_key(char *key_value) {
-    _key new_key = (_key) {{0}, clone(key_value)};
-    MurmurHash3_x64_128(key_value, strlen(key_value), 42, new_key.hash);
+    _key new_key = (_key) {0, clone(key_value)};
+    MurmurHash3_x64_128(key_value, strlen(key_value), 42, &new_key.hash);
     return new_key;
 }
 
-int add_item(dict *dict, char *key_value, item_value item_value) {
+void set_item(dict *dict, char *key_value, item_value item_value) {
     if (item_value.type == NOT_FOUND || dict->n_items == UINT64_MAX || key_value == NULL)
-        return 0;
-    if (dict->n_items >= dict->n_buckets * 0.75)
+        return;
+    if (dict->n_items >= dict->n_buckets * (2.0 / 3.0))
         _resize(dict);
     _key key = _create_key(key_value);
     if (item_value.type == STRING)
         item_value.value.string_value = clone(item_value.value.string_value);
-    if (_append_node(dict->buckets + _calc_location(&key, dict->n_buckets), _new_item(&key, item_value))) {
-        dict->n_items++;
-        return 1;
-    }
-    return 0;
+    _set_item(dict->buckets + (key.hash % dict->n_buckets), &key, &item_value);
+    dict->n_items++;
 }
 
 item_value get_item(dict *dict, char *key_value) {
     if (key_value == NULL)
         return (item_value) {NOT_FOUND};
     _key key = _create_key(key_value);
-    item_value item_value = _get_item_from_bucket(dict->buckets + _calc_location(&key, dict->n_buckets), &key);
+    _item_node *node = _get_node(dict->buckets[(key.hash % dict->n_buckets)], &key);
+    if (node == NULL)
+        return (item_value) {NOT_FOUND};
+    item_value item_value = node->item_value;
     free(key.value);
     if (item_value.type == STRING)
         item_value.value.string_value = clone(item_value.value.string_value);
@@ -78,7 +74,7 @@ int delete_item(dict *dict, char *key_value) {
     if (key_value == NULL)
         return 0;
     _key key = _create_key(key_value);
-    if (_delete_item_from_bucket(dict->buckets + _calc_location(&key, dict->n_buckets), &key)) {
+    if (_delete_item_from_bucket(dict->buckets + (key.hash % dict->n_buckets), &key)) {
         dict->n_items--;
         return 1;
     }
@@ -87,7 +83,7 @@ int delete_item(dict *dict, char *key_value) {
 
 void delete_dict(dict *dict) {
     for (int i = 0; i < dict->n_buckets; i++)
-        _delete_bucket(dict->buckets + i);
+        _delete_bucket(dict->buckets[i]);
     free(dict->buckets);
     free(dict);
 }
@@ -101,12 +97,12 @@ static _item_node *_next_node(dict_iterator *iterator) {
         return NULL;
     }
     if (iterator->node == NULL)
-        iterator->node = iterator->dict->buckets[0].first_node;
+        iterator->node = iterator->dict->buckets[0];
     else
         iterator->node = iterator->node->next;
 
     while (iterator->node == NULL && ++iterator->i_bucket < iterator->dict->n_buckets) {
-        iterator->node = iterator->dict->buckets[iterator->i_bucket].first_node;
+        iterator->node = iterator->dict->buckets[iterator->i_bucket];
     }
     return iterator->node;
 }
@@ -136,4 +132,17 @@ item next_item(dict_iterator *iterator) {
         return next_item;
     }
     return (item) {NULL};
+}
+
+void print_dict(dict *dict) {
+    printf("{");
+    dict_iterator it = iter_dict(dict);
+    item item;
+
+    while ((item = next_item(&it)).key != NULL) {
+        printf("\"%s\": ", item.key);
+        print_item_value(&item.item_value);
+        printf(", ");
+    }
+    printf("%s}\n", dict->n_items != 0 ? "\b\b" : "");
 }

@@ -13,7 +13,7 @@
 
 char *clone(char *str_p);
 
-_item_node *_new_item(_key *key, item_value value);
+_item_node *_new_item(_key *key, item_value * value);
 
 void delete_item_value(item_value *item_value);
 
@@ -21,6 +21,6 @@ void _delete_item_node(_item_node *item);
 
 void delete_return_item(item *r_item);
 
-int _compare_keys(_key *key1, _key *key2);
+void print_item_value(item_value *item_value);
 
 #endif //CDB_ITEM_NODE_H

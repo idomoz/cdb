@@ -12,4 +12,6 @@ array *new_array(value_type type, uint64_t length);
 
 void delete_array(array *_array);
 
+void print_array(array *_array);
+
 #endif //CDB_ARRAY_H

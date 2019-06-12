@@ -33,7 +33,7 @@ void delete_array(array *_array) {
         for (int i = 0; i < _array->length; i++) {
             switch (_array->type) {
                 case STRING:
-                    free((void *) (_array->values)[i]);
+                    free((char **) (_array->values)[i]);
                     break;
                 case DICT:
                     delete_dict((dict *) (_array->values)[i]);
@@ -47,4 +47,39 @@ void delete_array(array *_array) {
         }
     free(_array->values);
     free(_array);
+}
+
+void print_array(array *_array) {
+    item_value item;
+    printf("[");
+    item = (item_value) {_array->type};
+    for (int i = 0; i < _array->length; i++) {
+        switch (_array->type) {
+            case STRING:
+                item.value.string_value = ((char **) _array->values)[i];
+                break;
+            case DICT:
+                item.value.dict_value = ((dict **) _array->values)[i];
+                break;
+            case ARRAY:
+                item.value.array_value = ((array **) _array->values)[i];
+                break;
+            case INT:
+                item.value.int_value = ((int64_t *) _array->values)[i];
+                break;
+            case UINT:
+                item.value.uint_value = ((uint64_t *) _array->values)[i];
+                break;
+            case DOUBLE:
+                item.value.double_value = ((double *) _array->values)[i];
+                break;
+            case BOOL:
+                item.value.bool_value = ((char *) _array->values)[i];
+                break;
+        }
+        print_item_value(&item);
+        if (i < _array->length - 1)
+            printf(", ");
+    }
+    printf("]");
 }

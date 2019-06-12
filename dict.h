@@ -10,10 +10,9 @@
 #include "bucket.h"
 #include "cdb_types.h"
 
-
 dict *new_dict(uint64_t initial_size);
 
-int add_item(dict *dict, char *key_value, item_value item_value);
+void set_item(dict *dict, char *key_value, item_value item_value);
 
 item_value get_item(dict *dict, char *key_value);
 
@@ -28,5 +27,6 @@ char *next_key(dict_iterator *iterator);
 item_value next_value(dict_iterator *iterator);
 
 item next_item(dict_iterator *iterator);
+void print_dict(dict * dict);
 
 #endif //CDB_DICT_H

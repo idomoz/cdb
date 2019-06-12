@@ -10,14 +10,14 @@
 #include "cdb_types.h"
 
 
-_bucket _new_bucket();
+void _set_item(_item_node **first_node,_key * key, item_value * value);
 
-int _append_node(_bucket *bucket, _item_node *node);
+void _append_node(_item_node **first_node, _item_node *node);
 
-item_value _get_item_from_bucket(_bucket *bucket, _key *key);
+_item_node * _get_node(_item_node *node, _key *key);
 
-int _delete_item_from_bucket(_bucket *bucket, _key *key);
+int _delete_item_from_bucket(_item_node **first_node, _key *key);
 
-void _delete_bucket(_bucket *bucket);
+void _delete_bucket(_item_node *node);
 
 #endif //CDB_BUCKET_H
